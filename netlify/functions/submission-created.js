@@ -47,8 +47,7 @@ export async function handler(event) {
       attachments = await processAttachments(files);
     } catch (error) {
       console.error("Failed to process attachments:", error);
-      // Decide if you still want to send the email without attachments
-      // For now, we'll continue and just log the error.
+      // Continue sending email without attachments
     }
   }
 
@@ -67,7 +66,6 @@ export async function handler(event) {
       attachments: attachments.length ? attachments : undefined,
     });
   } catch (error) {
-    // Log detailed error information from SendGrid
     console.error("SendGrid API Error:", JSON.stringify(error.response?.body || error.message, null, 2));
     return { statusCode: 502, body: "Failed to send email via provider." };
   }
@@ -81,24 +79,43 @@ export async function handler(event) {
 
 /**
  * Creates the subject, HTML body, and text body for the email.
- * @param {object} data - The form submission data.
- * @returns {{subject: string, htmlBody: string, textBody: string}}
+ * Ensures Sales Consultant shows LAST and with a normalized label.
  */
 function createEmailContent(data) {
   const included = new Set(["form-name", "company", "bot-field", "honeypot"]);
   const rows = [];
   const hasVal = (v) => v !== undefined && v !== null && String(v).trim() !== "";
 
-  // Sort keys for consistent email layout
+  // Friendly label mapping (only force Sales Consultant per your request)
+  const displayLabel = (key) => {
+    if (key === "salesConsultant") return "Sales Consultant";
+    return key; // leave others as-is; change here if you want more label tweaks
+  };
+
+  // Handle Sales Consultant separately to keep it at the bottom
+  let salesConsultantRow = null;
+
+  // Sort all keys EXCEPT salesConsultant
   Object.keys(data).sort().forEach(k => {
     if (included.has(k)) return;
     const v = data[k];
-    if (hasVal(v)) {
-      rows.push([k, Array.isArray(v) ? v.join(", ") : String(v)]);
+    if (!hasVal(v)) return;
+
+    if (k === "salesConsultant") {
+      salesConsultantRow = [displayLabel(k), Array.isArray(v) ? v.join(", ") : String(v)];
+    } else {
+      rows.push([displayLabel(k), Array.isArray(v) ? v.join(", ") : String(v)]);
     }
   });
 
-  const htmlEscape = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  if (salesConsultantRow) {
+    rows.push(salesConsultantRow); // Append LAST
+  }
+
+  const htmlEscape = (s) => String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 
   const htmlBody = `
     <h2 style="margin:0 0 12px 0;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;">New Trade-In Lead</h2>
@@ -113,15 +130,16 @@ function createEmailContent(data) {
   `;
 
   const textBody = rows.map(([k, v]) => `${k}: ${v}`).join("\n");
-  const subject = `New Trade-In Lead – ${data.year || ""} ${data.make || ""} ${data.model || ""}`.replace(/\s+/g, " ").trim();
+  const subject = `New Trade-In Lead – ${data.year || ""} ${data.make || ""} ${data.model || ""}`
+    .replace(/\s+/g, " ")
+    .trim();
 
   return { subject, htmlBody, textBody };
 }
 
+
 /**
  * Fetches uploaded files and prepares them for SendGrid attachments.
- * @param {Array<object>} files - Array of file objects from Netlify.
- * @returns {Promise<Array<object>>} - A promise that resolves to an array of SendGrid attachment objects.
  */
 async function processAttachments(files) {
   const MAX_ATTACH = 10;
@@ -154,9 +172,6 @@ async function processAttachments(files) {
       totalSize += size;
 
       return {
-        // *** THIS IS THE FIX ***
-        // The original code had `Buffer.from(buffer)`, which is incorrect.
-        // `buffer` is already a Buffer, so we just need to Base64-encode it.
         content: buffer.toString("base64"),
         filename: file.filename,
         type: file.type || "application/octet-stream",
@@ -169,13 +184,12 @@ async function processAttachments(files) {
   });
 
   const results = await Promise.all(fetchPromises);
-  return results.filter(Boolean); // Filter out any nulls from failed fetches/skips
+  return results.filter(Boolean);
 }
+
 
 /**
  * (Optional) Sends submission data to a backup service like Google Sheets.
- * @param {object} data - The form submission data.
- * @param {Array<object>} files - The array of file objects.
  */
 async function triggerBackupWebhook(data, files) {
   if (!process.env.SHEETS_WEBHOOK_URL) return;
@@ -195,7 +209,6 @@ async function triggerBackupWebhook(data, files) {
       body: JSON.stringify(lead),
     });
   } catch (error) {
-    // Log but do not fail the function if the backup fails
     console.warn("Backup webhook failed:", error);
   }
 }

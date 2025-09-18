@@ -3,40 +3,61 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title data-i18n="successTitle">Thanks! - Quirk Chrysler Jeep Braintree</title>
+  <title data-i18n="successTitle">Thanks! - Quirk Chrysler Jeep</title>
   <link rel="stylesheet" href="/assets/styles.css" />
+
   <style>
-    body {
-      margin: 0;
-      font-family: system-ui, sans-serif;
-      background: url('/assets/quirk-lot.png') no-repeat center center fixed;
-      background-size: cover;
-      position: relative;
+    /* Watermark background — light white overlay so the photo shows through */
+    body.success {
+      min-height: 100vh;
+      background:
+        /* ~60% image strength via 40% white overlay */
+        linear-gradient(rgba(255,255,255,.40), rgba(255,255,255,.40)),
+        url('/assets/quirk-lot.png') center / cover no-repeat fixed;
     }
 
-    /* Add a translucent overlay to soften the background */
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      background: rgba(255, 255, 255, 0.7);
-      z-index: 0;
+    /* Default card (mobile-first) */
+    main.success-card {
+      max-width: 720px;
+      margin: 40px auto;
+      background: #fff;                     /* overridden below */
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
 
-    main {
-      position: relative;
-      z-index: 1; /* Keeps card above watermark overlay */
+    /* MOBILE ONLY: small gap from the very top & 50% white card */
+    @media (max-width: 640px) {
+      main.success-card {
+        margin: 12px auto 24px;             /* little breathing room at top */
+        background: rgba(255,255,255,0.50); /* 50% white */
+        backdrop-filter: blur(1px);         /* subtle polish (supported browsers) */
+      }
+    }
+
+    /* DESKTOP/TABLET: center card both ways & 50% white */
+    @media (min-width: 641px) {
+      body.success {
+        display: flex;
+        align-items: center;                /* vertical centering */
+        justify-content: center;            /* horizontal centering */
+        padding: 40px 16px;                 /* page breathing room */
+      }
+      main.success-card {
+        margin: 0;
+        background: rgba(255,255,255,0.50); /* 50% white */
+        backdrop-filter: blur(1px);
+      }
     }
   </style>
 </head>
-<body>
-  <main style="max-width:720px;margin:40px auto;background:#fff;padding:24px;
-               border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,0.1)">
+<body class="success">
+  <main class="success-card">
     <h1 style="text-align:center;margin:0 0 10px;color:#004a2f" data-i18n="successHeading">
       Thank you!
     </h1>
     <p style="text-align:center;font-size:16px" data-i18n="successMessage">
-      We received your trade-in details. A Quirk Chrysler Jeep Braintree specialist will contact you shortly.
+      We received your trade-in details. A Quirk Chrysler Jeep specialist will contact you shortly.
     </p>
 
     <div style="display:flex;gap:10px;justify-content:center;margin-top:18px">
@@ -45,7 +66,7 @@
       </a>
       <a class="ghost-btn" href="https://www.quirkchryslerjeep.com" target="_blank" 
          rel="noopener noreferrer" style="text-decoration:none" data-i18n="backToDealer">
-        Back to Quirk Chrysler Jeep Braintree
+        Back to Quirk Chrysler Jeep
       </a>
     </div>
 
